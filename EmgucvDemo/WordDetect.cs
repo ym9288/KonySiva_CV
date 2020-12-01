@@ -26,57 +26,128 @@ namespace EmgucvDemo
             for (int i = 0; i < contours.Size; i++)
             {
                 var temp = contours[i].ToArray();
+                if (temp.Length < 2)
+                    continue;
                 int minX = temp.Min(m => m.X);
                 int minY = temp.Min(m => m.Y);
                 int maxX = temp.Max(m => m.X);
                 int maxY = temp.Max(m => m.Y);
-
-                Point radomPt = temp[0];
-                double maxDistance = 0;
+                
+                
                 List<Point> result = new List<Point>();
-                Point? startPt = null, endPt = null;
-                foreach(var pt1 in temp)
-                    foreach(var pt2 in temp)
-                    {
-                        var res = GetDistance(pt1, pt2);
-                        if (res > maxDistance)
-                        {
-                            maxDistance = res;
-                            startPt = pt1;
-                            endPt = pt2;
-                        }
-                    }
-                maxDistance = 0;
-                foreach (Point pt in temp)
+                
+                var lineEndPoints = GetLines(temp,null);
+
+                for (int x=1;x<lineEndPoints.Count;x++)
                 {
-                    double res = DistanceForPointToABLine(pt, startPt.Value, endPt.Value);
-                    if(res > maxDistance)
-                    {
-                        maxDistance = res;
-                        if(kot < maxDistance)
-                        {
-                            result.Add(pt);
-                        }
-                    }
+                    CvInvoke.Line(img, lineEndPoints[x-1], lineEndPoints[x], new MCvScalar(0, 255, 0));
                 }
-                if (result.Count > 0)
-                {
-                    CvInvoke.Line(img, startPt.Value, result[0], new MCvScalar(0, 255, 0));
-                    CvInvoke.Line(img, result[0], endPt.Value, new MCvScalar(0, 255, 0));
-                }
-                else
-                    CvInvoke.Line(img, startPt.Value, endPt.Value, new MCvScalar(0, 255, 0));
+
                 CvInvoke.Imshow("lines", img);
             }
         }
-        public static double DistanceForPointToABLine(Point pt, Point pt1, Point pt2)//所在点到AB线段的垂线长度
+        /// <summary>
+        /// 获取点集合的最长线段连接
+        /// </summary>
+        /// <param name="candyPoints"></param>
+        /// <returns></returns>
+        public static List<Point> GetLines(Point[] candyPoints,Point? endPt1)
+        {
+            Point radomPt = candyPoints[0];
+            Point[] tempEnds = new Point[2];
+            double maxDistance = 0;
+            //获取2个端点
+            if (!endPt1.HasValue)
+            {
+                for (int i = 1; i < candyPoints.Length; i++)
+                {
+                    var res = GetDistance(radomPt, candyPoints[i]);
+                    if (res > maxDistance)
+                    {
+                        maxDistance = res;
+                        tempEnds[0] = candyPoints[i];
+                    }
+                }
+            }
+            else
+            {
+                tempEnds[0] = endPt1.Value;
+            }
+            maxDistance = 0;
+            for (int i = 0; i < candyPoints.Length; i++)
+            {
+                var res = GetDistance(tempEnds[0], candyPoints[i]);
+                if (res > maxDistance)
+                {
+                    maxDistance = res;
+                    tempEnds[1] = candyPoints[i];
+                }
+            }
+            //.......
+            //
+            maxDistance = 0;
+            Point? farthestPoint = null;
+            foreach (Point pt in candyPoints)
+            {
+                double res = DistanceForPointToABLine(pt, tempEnds[0], tempEnds[1]);
+                if (res > maxDistance)
+                {
+                    maxDistance = res;
+                    farthestPoint = pt;
+                }
+            }
+            if (maxDistance > kot)
+            {
+                //获取candPoints中全部在 farthestPoint，两侧的点集合 
+                var pts = GetPointsBetwenLine(candyPoints, tempEnds[0], farthestPoint.Value);
+                List<Point> result = new List<Point>();
+                List<Point> leftPts = null,rightPts = null;
+                if (pts[0].Count > 1)
+                {
+                    leftPts = GetLines(pts[0].ToArray(), farthestPoint.Value);
+
+                }
+                if (pts[1].Count > 1)
+                {
+                    var childPts2 = GetLines(pts[1].ToArray(), farthestPoint.Value);
+                }
+
+                return result;
+            }
+            else
+            {
+                return new List<Point>(tempEnds);
+            }
+        }
+        private static List<Point>[] GetPointsBetwenLine(Point[] points,Point pt1,Point pt2)
+        {
+            List<Point>[] res = new List<Point>[2] { new List<Point>(), new List<Point>() };
+            double k = ((double)pt2.Y - (double)pt1.Y) / ((double)pt2.X - (double)pt1.X);
+            double b = (double)pt1.Y - k * (double)pt1.X;
+            foreach(var pt in points)
+            {
+                var t = pt.Y - (k * (double)pt.X + b);
+
+                    if (t < 0)
+                    {
+                        res[0].Add(pt);
+                    }
+                    else if (t > 0)
+                    {
+                        res[1].Add(pt);
+                    }
+                
+            }
+            return res;
+        }
+        public static double DistanceForPointToABLine(Point pt, Point ptA, Point ptB)//所在点到AB线段的垂线长度
         {
             double x = pt.X;
             double y = pt.Y;
-            double x1 = pt1.X;
-            double y1 = pt1.Y;
-            double x2 = pt2.X;
-            double y2 = pt2.Y;
+            double x1 = ptA.X;
+            double y1 = ptA.Y;
+            double x2 = ptB.X;
+            double y2 = ptB.Y;
             double reVal = 0f;
             bool retData = false;
 

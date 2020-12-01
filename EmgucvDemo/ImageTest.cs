@@ -18,17 +18,6 @@ namespace EmgucvDemo
             Mat img4 = CvInvoke.Imread(fileName, Emgu.CV.CvEnum.ImreadModes.AnyDepth);
         }
 
-        public int GetMostGrayValue(Mat input)
-        {
-            Mat temp = input;
-            if (input.NumberOfChannels > 1)
-            {
-                temp = new Mat(,)
-            }
-            int[] arry = new int[256];
-
-        }
-
         public void ClearBackground(string fileName)
         {
             Mat img1 = CvInvoke.Imread(fileName, Emgu.CV.CvEnum.ImreadModes.Grayscale);

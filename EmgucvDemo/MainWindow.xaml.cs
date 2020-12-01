@@ -29,7 +29,7 @@ namespace EmgucvDemo
         private void OnReadImage(object sender, RoutedEventArgs e)
         {
             ImageTest obj = new ImageTest();
-            obj.Load(@"d:\verfyCode.png");
+            WordDetect.ParseLines(@"d:\word.png");
         }
     }
 }
